@@ -33,9 +33,10 @@
     // コメントリスト描画 (非効率)
     draw: function() {
       this.comments.sort((a, b) => a.vposMsec - b.vposMsec);
-      const createItemCol = function(text, width) {
+      const createItemCol = function(text) {
         let elmCol = document.createElement("div");
-        elmCol.setAttribute("style", "min-width: " + width + ";text-overflow: ellipsis;overflow: hidden;white-space: nowrap;padding: 4px 8px;border-right: 1px solid #dadada;");
+        elmCol.setAttribute("style", "text-overflow: ellipsis;overflow: hidden;white-space: nowrap;padding: 4px 8px;border-right: 1px solid #dadada;");
+        elmCol.title = text;
         elmCol.innerText = text;
         return elmCol;
       }
@@ -43,19 +44,19 @@
       // ヘッダー
       {
         let elmListItem = document.createElement("div");
-        elmListItem.setAttribute("style", "display: flex;position: sticky;top: 0;");
-        elmListItem.appendChild(createItemCol("コメント", "calc(100% - 80px);background: #f2f2f2"));
-        elmListItem.appendChild(createItemCol("再生時間", "80px;background: #f2f2f2"));
-        elmListItem.appendChild(createItemCol("書込日時", "180px;background: #f2f2f2"));
+        elmListItem.setAttribute("style", "display: grid; grid-template-columns: minmax(180px, auto) 80px 180px; width: calc(max(100%, 260px) + 180px); position: sticky; top: 0; background: #f2f2f2;");
+        elmListItem.appendChild(createItemCol("コメント"));
+        elmListItem.appendChild(createItemCol("再生時間"));
+        elmListItem.appendChild(createItemCol("書込日時"));
         this.elmList.appendChild(elmListItem);
       }
 
       for(let idx = 0; idx < this.comments.length; ++idx) {
         let elmListItem = document.createElement("div");
-        elmListItem.setAttribute("style", "display: flex;");
-        elmListItem.appendChild(createItemCol(this.comments[idx].message, "calc(100% - 80px)"));
-        elmListItem.appendChild(createItemCol(mescToTime(this.comments[idx].vposMsec), "80px"));
-        elmListItem.appendChild(createItemCol(new Date(this.comments[idx].postedAt).toLocaleString(), "180px"));
+        elmListItem.setAttribute("style", "display: grid; grid-template-columns: minmax(180px, auto) 80px 180px; width: calc(max(100%, 260px) + 180px);");
+        elmListItem.appendChild(createItemCol(this.comments[idx].message));
+        elmListItem.appendChild(createItemCol(mescToTime(this.comments[idx].vposMsec)));
+        elmListItem.appendChild(createItemCol(new Date(this.comments[idx].postedAt).toLocaleString()));
         this.elmList.appendChild(elmListItem);
         this.comments[idx].elmItem = elmListItem;
       }
@@ -157,7 +158,7 @@
       json: () => {
         return new Promise(resolve => resolve(obj));
       }
-    };		
+    };
   }
 
   // コメントリストを挿入する & レイアウトを整える
@@ -196,14 +197,22 @@
     elmPage.setAttribute("style", elmPage.getAttribute("style") + ";--max-player-width: 1200px;");
 
     const elmColContainer = document.createElement("div");
-    elmColContainer.setAttribute("style", "display: flex;gap: 12px");
+    elmColContainer.setAttribute("style", "display: grid; grid-template-columns: 2fr 1fr; gap: 12px;");
 
     const elmColLeft = document.createElement("div");
-    elmColLeft.setAttribute("style", "display: flex;flex-direction: column;gap: 12px;width: calc(100% - 400px);");
+    elmColLeft.setAttribute("style", "display: flex;flex-direction: column;gap: 12px;");
     elmColContainer.appendChild(elmColLeft);
     const elmColRight = document.createElement("div");
     elmColRight.setAttribute("style", "flex: 1 1 auto; position: relative;");
     elmColContainer.appendChild(elmColRight);
+
+    const inputContainer = elmCommentInput.children[0];
+    inputContainer.setAttribute("style", "display: grid; grid-template-columns: 1fr 3fr 1fr;");
+    const commandInput = inputContainer.children[0]
+    commandInput.setAttribute("style", "padding: 8px;");
+
+    const controlContainer = elmPlayer.lastChild;
+    controlContainer.setAttribute("style", "gap: 10px;");
 
     elmPage.insertBefore(elmColContainer, elmPlayer);
     elmPlayer.parentElement.removeChild(elmPlayer);
