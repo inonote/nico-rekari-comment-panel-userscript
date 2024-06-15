@@ -22,6 +22,7 @@
   function CommentList() {
     this.elmList = document.createElement("div");
     this.elmList.setAttribute("style", "border: 2px solid #dadada;width: 100%;overflow: scroll;position: absolute;height: 100%;font-size:80%");
+    this.elmVideo = null;
     this.comments = [];
   }
   CommentList.prototype = {
@@ -32,6 +33,7 @@
 
     // コメントリスト描画 (非効率)
     draw: function() {
+      this.elmList.innerHTML = "";
       this.comments.sort((a, b) => a.vposMsec - b.vposMsec);
       const createItemCol = function(text) {
         let elmCol = document.createElement("div");
@@ -63,7 +65,10 @@
     },
 
     // 再生時間とコメントリストの位置を同期させる
-    syncCurrentTime: function(time) {
+    syncCurrentTime: function(time_) {
+      let time = time_;
+      if (time === undefined && this.elmVideo)
+        time = this.elmVideo.currentTime * 1000;
       for(const x of this.comments) {
         if (time <= x.vposMsec) {
           if (x.elmItem) {
@@ -78,6 +83,7 @@
     },
 
     startTimeSync: function(elmVideo) {
+      this.elmVideo = elmVideo;
       setInterval(() => {
         if (!elmVideo.paused)
           this.syncCurrentTime(elmVideo.currentTime * 1000);
@@ -101,11 +107,20 @@
   async function onGetComments(vidId, resp) {
     console.log("コメント取得: " + vidId);
 
-    let comments = resp.data.comments;
-    console.log("コメント件数", resp.data.comments.length);
-
-    commentList.comments = comments;
-    commentList.draw();
+    switch(resp.meta.status) {
+    case 200:
+      console.log("コメント件数", resp.data.comments.length);
+      commentList.comments = resp.data.comments;
+      commentList.draw();
+      return false;
+    
+    case 201:
+      console.log("コメント追加");
+      commentList.comments.push(resp.data.comment);
+      commentList.draw();
+      commentList.syncCurrentTime();
+      return false;
+    }
 
     return false;
 
@@ -166,14 +181,14 @@
     /*
 
     +-----------------------------------------+
-    | elmPage (main > div:first-child)    |
+    | elmPage (main > div:first-child)        |
     | +-------------------------------------+ |
-    | | elmColContainer           | |
+    | | elmColContainer                     | |
     | | +------------+  +-----------------+ | |
-    | | | elmColLeft |  | elmColRight   | | |
+    | | | elmColLeft |  | elmColRight     | | |
     | | | +--------+ |  | +-------------+ | | |
     | | | | video  | |  | | commentList | | | |
-    | | | | input  | |  | |       | | | |
+    | | | | input  | |  | |             | | | |
     | | | +--------+ |  | +-------------+ | | |
     | | +------------+  +-----------------+ | |
     | +-------------------------------------+ |
@@ -184,7 +199,7 @@
     if (!elmPage) {
       // まだ読み込みが終わっていなかったら 250ms 待つ
       setTimeout(appendCommentList, 250);
-      return
+      return;
     }
     const elmPlayer = elmPage.children[0];
     const elmCommentInput = elmPage.children[1];
@@ -192,7 +207,7 @@
     const elmVideo = elmPlayer.querySelector("video");
     if (!elmVideo) {
       setTimeout(appendCommentList, 250);
-      return
+      return;
     }
     elmPage.setAttribute("style", elmPage.getAttribute("style") + ";--max-player-width: 1200px;");
 
@@ -206,20 +221,27 @@
     elmColRight.setAttribute("style", "flex: 1 1 auto; position: relative;");
     elmColContainer.appendChild(elmColRight);
 
+    // コメント投稿時に挿入される Cloudflare Turnstile 用 iframe は
+    // elmPlayer の要素位置を基準にしているようなので、元の要素は残しておく
+    const elmPlayerCloned = elmPlayer.cloneNode(false);
+
     const inputContainer = elmCommentInput.children[0];
     inputContainer.setAttribute("style", "display: grid; grid-template-columns: 1fr 3fr 1fr;");
-    const commandInput = inputContainer.children[0]
+    const commandInput = inputContainer.children[0];
     commandInput.setAttribute("style", "padding: 8px;");
 
-    const controlContainer = elmPlayer.lastChild;
+    const controlContainer = elmPlayer.children[2];
     controlContainer.setAttribute("style", "gap: 10px;");
 
     elmPage.insertBefore(elmColContainer, elmPlayer);
-    elmPlayer.parentElement.removeChild(elmPlayer);
-    elmColLeft.appendChild(elmPlayer);
+
+    elmColLeft.appendChild(elmPlayerCloned);
+    while(elmPlayer.firstElementChild)
+      elmPlayerCloned.appendChild(elmPlayer.removeChild(elmPlayer.firstElementChild));
+
     elmCommentInput.parentElement.removeChild(elmCommentInput);
     elmColLeft.appendChild(elmCommentInput);
-
+    
     commentList.install(elmColRight);
     commentList.startTimeSync(elmVideo);
   }
