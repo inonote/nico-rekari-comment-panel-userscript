@@ -180,6 +180,11 @@
 
     */
     const elmPage = document.querySelector("main > div:first-child");
+    if (!elmPage) {
+      // まだ読み込みが終わっていなかったら1フレーム待つ
+      requestAnimationFrame(elmPage);
+      return
+    }
     const elmPlayer = elmPage.children[0];
     const elmCommentInput = elmPage.children[1];
 
@@ -221,5 +226,5 @@
   };
   fetch = new Proxy(fetch, fetchHandler);
 
-  setTimeout(appendCommentList, 1000);
+  appendCommentList();
 })();
