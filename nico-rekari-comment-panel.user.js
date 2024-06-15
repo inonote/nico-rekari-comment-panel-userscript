@@ -182,7 +182,7 @@
     const elmPage = document.querySelector("main > div:first-child");
     if (!elmPage) {
       // まだ読み込みが終わっていなかったら1フレーム待つ
-      requestAnimationFrame(elmPage);
+      requestAnimationFrame(appendCommentList);
       return
     }
     const elmPlayer = elmPage.children[0];
