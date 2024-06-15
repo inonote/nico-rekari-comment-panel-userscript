@@ -113,7 +113,7 @@
       commentList.comments = resp.data.comments;
       commentList.draw();
       return false;
-    
+
     case 201:
       console.log("コメント追加");
       commentList.comments.push(resp.data.comment);
@@ -241,7 +241,23 @@
 
     elmCommentInput.parentElement.removeChild(elmCommentInput);
     elmColLeft.appendChild(elmCommentInput);
-    
+
+    // コネコネ(仮) (https://github.com/sevenc-nanashi/conecone-kakkokari)
+    // の全画面機能と競合しないようにする
+    elmPlayer.requestFullscreen = new Proxy(elmPlayer.requestFullscreen, {
+      apply: function(target, thisArg, args) {
+        while(elmPlayerCloned.firstElementChild)
+          elmPlayer.appendChild(elmPlayerCloned.removeChild(elmPlayerCloned.firstElementChild));
+        return target.apply(thisArg, args);
+      }
+    });
+    elmPlayer.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement) {
+        while(elmPlayer.firstElementChild)
+          elmPlayerCloned.appendChild(elmPlayer.removeChild(elmPlayer.firstElementChild));
+      }
+    });
+
     commentList.install(elmColRight);
     commentList.startTimeSync(elmVideo);
   }
@@ -254,13 +270,12 @@
     return (padding.repeat(num) + str).slice(-num);
   }
 
-  const fetchHandler = {
+  fetch = new Proxy(fetch, {
     apply: async function(target, thisArg, args) {
       let response = await target.apply(thisArg, args);
       return await onFetchApi(typeof args[0] === "string" ? args[0] : args[0].url, response);
     }
-  };
-  fetch = new Proxy(fetch, fetchHandler);
+  });
 
   appendCommentList();
 })();
