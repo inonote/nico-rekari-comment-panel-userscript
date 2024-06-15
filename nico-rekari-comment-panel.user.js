@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name     コメントパネル for Re仮
+// @name     コメントパネル for Re:仮
 // @namespace  https://github.com/inonote/nico-rekari-comment-panel-userscript
 // @version    2024-06-14
-// @description ニコニコ動画(Re:仮)にコメントパネルを (無理やり) 導入します
+// @description ニコニコ動画 (Re:仮) にコメントパネルを (無理やり) 導入します
 // @author     いののて
 // @match    https://www.nicovideo.jp/watch_tmp/*
 // @icon     https://www.google.com/s2/favicons?sz=64&domain=nicovideo.jp
@@ -21,7 +21,7 @@
 
   function CommentList() {
     this.elmList = document.createElement("div");
-    this.elmList.setAttribute("style", "border: 2px solid #dadada;width: 100%;padding: 6px;overflow: scroll;position: absolute;height: 100%;font-size:87.5%");
+    this.elmList.setAttribute("style", "border: 2px solid #dadada;width: 100%;overflow: scroll;position: absolute;height: 100%;font-size:80%");
     this.comments = [];
   }
   CommentList.prototype = {
@@ -35,9 +35,19 @@
       this.comments.sort((a, b) => a.vposMsec - b.vposMsec);
       const createItemCol = function(text, width) {
         let elmCol = document.createElement("div");
-        elmCol.setAttribute("style", "min-width: " + width + ";text-overflow: ellipsis;overflow: hidden;white-space: nowrap;padding: 2px;border-bottom: 1px solid #dadada;");
+        elmCol.setAttribute("style", "min-width: " + width + ";text-overflow: ellipsis;overflow: hidden;white-space: nowrap;padding: 4px 8px;border-right: 1px solid #dadada;");
         elmCol.innerText = text;
         return elmCol;
+      }
+
+      // ヘッダー
+      {
+        let elmListItem = document.createElement("div");
+        elmListItem.setAttribute("style", "display: flex;position: sticky;top: 0;");
+        elmListItem.appendChild(createItemCol("コメント", "calc(100% - 80px);background: #f2f2f2"));
+        elmListItem.appendChild(createItemCol("再生時間", "80px;background: #f2f2f2"));
+        elmListItem.appendChild(createItemCol("書込日時", "180px;background: #f2f2f2"));
+        this.elmList.appendChild(elmListItem);
       }
 
       for(let idx = 0; idx < this.comments.length; ++idx) {
@@ -93,7 +103,7 @@
     let comments = resp.data.comments;
     console.log("コメント件数", resp.data.comments.length);
 
-    commentList.comments = comments.slice();
+    commentList.comments = comments;
     commentList.draw();
 
     return false;
@@ -155,14 +165,14 @@
     /*
 
     +-----------------------------------------+
-    | elmPage (main > div:first-child)        |
+    | elmPage (main > div:first-child)    |
     | +-------------------------------------+ |
-    | | elmColContainer                     | |
+    | | elmColContainer           | |
     | | +------------+  +-----------------+ | |
-    | | | elmColLeft |  | elmColRight     | | |
+    | | | elmColLeft |  | elmColRight   | | |
     | | | +--------+ |  | +-------------+ | | |
     | | | | video  | |  | | commentList | | | |
-    | | | | input  | |  | |             | | | |
+    | | | | input  | |  | |       | | | |
     | | | +--------+ |  | +-------------+ | | |
     | | +------------+  +-----------------+ | |
     | +-------------------------------------+ |
