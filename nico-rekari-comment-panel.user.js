@@ -188,6 +188,12 @@
     const elmPlayer = elmPage.children[0];
     const elmCommentInput = elmPage.children[1];
 
+    const elmVideo = elmPlayer.querySelector("video");
+    if (!elmVideo) {
+      requestAnimationFrame(appendCommentList);
+      return
+    }
+
     elmPage.setAttribute("style", elmPage.getAttribute("style") + ";--max-player-width: 1200px;");
 
     const elmColContainer = document.createElement("div");
@@ -207,7 +213,7 @@
     elmColLeft.appendChild(elmCommentInput);
 
     commentList.install(elmColRight);
-    commentList.startTimeSync(elmPlayer.querySelector("video"));
+    commentList.startTimeSync(elmVideo);
   }
 
   function mescToTime(v) {
