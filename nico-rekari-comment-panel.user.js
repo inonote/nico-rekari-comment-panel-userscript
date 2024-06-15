@@ -181,8 +181,8 @@
     */
     const elmPage = document.querySelector("main > div:first-child");
     if (!elmPage) {
-      // まだ読み込みが終わっていなかったら1フレーム待つ
-      requestAnimationFrame(appendCommentList);
+      // まだ読み込みが終わっていなかったら 250ms 待つ
+      setTimeout(appendCommentList, 250);
       return
     }
     const elmPlayer = elmPage.children[0];
@@ -190,10 +190,9 @@
 
     const elmVideo = elmPlayer.querySelector("video");
     if (!elmVideo) {
-      requestAnimationFrame(appendCommentList);
+      setTimeout(appendCommentList, 250);
       return
     }
-
     elmPage.setAttribute("style", elmPage.getAttribute("style") + ";--max-player-width: 1200px;");
 
     const elmColContainer = document.createElement("div");
