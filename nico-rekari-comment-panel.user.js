@@ -16,6 +16,16 @@
 // Use of this source code is governed by the MIT License
 // that can be found at http://opensource.org/licenses/mit-license.php
 
+/**
+ * @typedef CommentData
+ * @property {string} command
+ * @property {string} id
+ * @property {string} message
+ * @property {string} postedAt
+ * @property {number} vposMsec
+ * @property {HTMLDivElement} elmItem
+ */
+
 (function() {
   "use strict";
 
@@ -23,7 +33,14 @@
     this.elmList = document.createElement("div");
     this.elmList.setAttribute("style", "border: 2px solid #dadada;width: 100%;overflow: scroll;position: absolute;height: 100%;font-size:80%");
     this.elmVideo = null;
+    /**
+     * @type {CommentData[]}
+     */
     this.comments = [];
+    /**
+     * @type {CommentData[]}
+     */
+    this.allComments = [];
   }
   CommentList.prototype = {
     // コメントリスト挿入
@@ -104,21 +121,54 @@
     return ret ? ret : resp;
   }
 
+  /**
+   * @param {CommentData[]} comments
+   * @param {string[]} ngWords
+   * @returns {{message: string}[]}
+   */
+  function removeNgComments(comments, ngWords) {
+    return comments.filter(comment => !ngWords.some(ng => comment.message.includes(ng)));
+  }
+
+  /**
+   * @returns {string[]}
+   */
+  function getNgWords() {
+    return JSON.parse(localStorage.getItem("niconico-tmp")).data.ngWords.data;
+  }
+
+  /**
+   * @param {CommentList} list
+   */
+  function updateCommentList(list) {
+    list.comments = removeNgComments(list.allComments, getNgWords());
+    list.draw();
+    list.syncCurrentTime();
+  }
+
+  /**
+   * @param {CommentList} list
+   * @param {number} milliSeconds
+   */
+  function updateCommentListOnTimeout(list, milliSeconds) {
+    setTimeout(() => updateCommentList(list), milliSeconds);
+  }
+
   async function onGetComments(vidId, resp) {
     console.log("コメント取得: " + vidId);
 
     switch(resp.meta.status) {
     case 200:
       console.log("コメント件数", resp.data.comments.length);
-      commentList.comments = resp.data.comments;
+      commentList.allComments = resp.data.comments;
+      commentList.comments = removeNgComments(commentList.allComments, getNgWords());
       commentList.draw();
       return false;
 
     case 201:
       console.log("コメント追加");
-      commentList.comments.push(resp.data.comment);
-      commentList.draw();
-      commentList.syncCurrentTime();
+      commentList.allComments.push(resp.data.comment);
+      updateCommentList(commentList);
       return false;
     }
 
@@ -257,6 +307,18 @@
           elmPlayerCloned.appendChild(elmPlayer.removeChild(elmPlayer.firstElementChild));
       }
     });
+
+    const ngCommentUl = document.querySelector("#popover\\:\\:r0\\:\\:content > div > ul");
+    const ulObserver = new MutationObserver((mutations, _observer) => {
+      mutations.forEach(mutation => {
+        if (mutation.type == "childList") {
+          // NG設定のリストが増減する場合に呼び出される
+          // timeoutはlocalStorageの更新待ち
+          updateCommentListOnTimeout(commentList, 250);
+        }
+      });
+    });
+    ulObserver.observe(ngCommentUl, { childList: true });
 
     commentList.install(elmColRight);
     commentList.startTimeSync(elmVideo);
