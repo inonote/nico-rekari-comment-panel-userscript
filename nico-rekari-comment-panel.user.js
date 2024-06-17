@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name     コメントパネル for Re:仮
 // @namespace  https://github.com/inonote/nico-rekari-comment-panel-userscript
-// @version    2024-06-15_2
+// @version    2024-06-17
 // @description ニコニコ動画 (Re:仮) にコメントパネルを (無理やり) 導入します
 // @author     いののて
 // @match    https://www.nicovideo.jp/watch_tmp/*
