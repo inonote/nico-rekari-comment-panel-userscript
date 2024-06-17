@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name     コメントパネル for Re:仮
 // @namespace  https://github.com/inonote/nico-rekari-comment-panel-userscript
-// @version    2024-06-17
+// @version    2024-06-17_1
 // @description ニコニコ動画 (Re:仮) にコメントパネルを (無理やり) 導入します
 // @author     いののて
 // @match    https://www.nicovideo.jp/watch_tmp/*
@@ -277,8 +277,6 @@
 
     const inputContainer = elmCommentInput.children[0];
     inputContainer.setAttribute("style", "display: grid; grid-template-columns: 1fr 3fr 1fr;");
-    const commandInput = inputContainer.children[0];
-    commandInput.setAttribute("style", "padding: 8px;");
 
     const controlContainer = elmPlayer.children[2];
     controlContainer.setAttribute("style", "gap: 10px;");
