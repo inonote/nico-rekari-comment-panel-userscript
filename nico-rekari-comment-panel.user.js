@@ -24,6 +24,7 @@
  * @property {string} postedAt
  * @property {number} vposMsec
  * @property {HTMLDivElement} elmItem
+ * @property {any} sortValue
  */
 
 (function() {
@@ -64,6 +65,22 @@
   white-space: nowrap;
   padding: 4px 8px;
   border-right: 1px solid #dadada;
+}
+
+.nicopane-cmtlst-head > .nicopane-cmtlst-col {
+  overflow: visible;
+}
+
+.nicopane-cmtlst-head > .nicopane-cmtlst-col.nicopane-sortable {
+  cursor: pointer
+}
+
+.nicopane-cmtlst-head > .nicopane-cmtlst-col[data-sort="asc"]::after {
+  content: "▲";
+}
+
+.nicopane-cmtlst-head > .nicopane-cmtlst-col[data-sort="desc"]::after {
+  content: "▼";
 }
 
 .nicopane-menu-backdrop {
@@ -108,19 +125,18 @@
 .nicopane-head {
   display: flex;
   margin: 4px 12px;
-  font-size: 92.5%;
+  font-size: 90%;
 }
 
 .nicopane-head > select {
-  border-width: revert;
-  border-style: revert;
-  border-color: revert;
+  border: 1px solid #acacac;
+  padding: 2px 8px;
 }
 
 .nicopane-head-btn {
   display: inline-block;
-  fill: #b2b9c2;
   cursor: pointer;
+  fill: #b2b9c2;
 }
 .nicopane-head-btn:hover {
   fill: #c9d1db;
@@ -202,6 +218,12 @@
     this.allComments = [];
 
     this.isAutoScrollEnabled = true;
+
+    /** @type {"vposMsec"|"postedAt"} */
+    this.sortKey = "vposMsec";
+    this.sortOrderReversed = false;
+
+    this.elmBtnAutoScroll = null;
   }
   CommentList.prototype = {
     // コメントリスト挿入
@@ -223,38 +245,86 @@
       elmBtnAutoScroll.title = "自動スクロール";
       elmBtnAutoScroll.appendChild(iconCommentAutoScroll());
       elmBtnAutoScroll.addEventListener("click", () => {
-        this.isAutoScrollEnabled = !this.isAutoScrollEnabled;
-
-        elmBtnAutoScroll.innerHTML = "";
-        if (this.isAutoScrollEnabled)
-          elmBtnAutoScroll.appendChild(iconCommentAutoScroll());
-        else
-          elmBtnAutoScroll.appendChild(iconCommentAutoScrollDisabled());
+        this.enableAutoScroll(!this.isAutoScrollEnabled);
+        if (this.isAutoScrollEnabled) {
+          if (this.sortKey !== "vposMsec" || !this.sortOrderReversed) {
+            this.sortKey = "vposMsec";
+            this.sortOrderReversed = false;
+            this.draw();
+          }
+        }
       }, true);
       elmCommentPanelHeader.appendChild(elmBtnAutoScroll);
+      this.elmBtnAutoScroll = elmBtnAutoScroll;
 
       parentElement.appendChild(elmCommentPanelHeader);
 
       parentElement.appendChild(this.elmList);
     },
 
+    /** @type {(flag: boolean) => void} */
+    enableAutoScroll: function(flag) {
+      this.isAutoScrollEnabled = !!flag;
+      this.elmBtnAutoScroll.innerHTML = "";
+      if (this.isAutoScrollEnabled)
+        this.elmBtnAutoScroll.appendChild(iconCommentAutoScroll());
+      else
+        this.elmBtnAutoScroll.appendChild(iconCommentAutoScrollDisabled());
+
+    },
+
     // コメントリスト描画 (非効率)
+    /** @type {() => void} */
     draw: function() {
       this.elmList.innerHTML = "";
-      this.comments.sort((a, b) => a.vposMsec - b.vposMsec);
-      const createItemCol = function(text) {
+      
+      // 並べ替える
+      for(const row of this.comments) {
+        if (this.sortKey === "postedAt")
+          row.sortValue = new Date(row.postedAt);
+        else
+          row.sortValue = row[this.sortKey];
+      }
+
+      if (this.sortOrderReversed)
+        this.comments.sort((a, b) => b.sortValue - a.sortValue);
+      else
+        this.comments.sort((a, b) => a.sortValue - b.sortValue);
+
+      const createItemCol = (text) => {
         let elmCol = createDivElement("nicopane-cmtlst-col");
         elmCol.title = text;
         elmCol.innerText = text;
         return elmCol;
-      }
+      };
+      const createHeaderItemCol = (text, sortKey) => {
+        let elmCol = createDivElement("nicopane-cmtlst-col");
+        elmCol.title = text;
+        elmCol.innerText = text;
+        if (sortKey !== undefined) {
+          elmCol.classList.add("nicopane-sortable");
+          
+          if (sortKey === this.sortKey)
+            elmCol.setAttribute("data-sort", this.sortOrderReversed ? "desc" : "asc");
+          elmCol.addEventListener("click", () => {
+            this.enableAutoScroll(false);
+            if (this.sortKey === sortKey)
+              this.sortOrderReversed = !this.sortOrderReversed;
+            else
+              this.sortOrderReversed = false;
+            this.sortKey = sortKey;
+            this.draw();
+          });
+        }
+        return elmCol;
+      };
 
       // ヘッダー
       {
         let elmListItem = createDivElement("nicopane-cmtlst-head");
-        elmListItem.appendChild(createItemCol("コメント"));
-        elmListItem.appendChild(createItemCol("再生時間"));
-        elmListItem.appendChild(createItemCol("書込日時"));
+        elmListItem.appendChild(createHeaderItemCol("コメント"));
+        elmListItem.appendChild(createHeaderItemCol("再生時間", "vposMsec"));
+        elmListItem.appendChild(createHeaderItemCol("書込日時", "postedAt"));
         this.elmList.appendChild(elmListItem);
       }
 
