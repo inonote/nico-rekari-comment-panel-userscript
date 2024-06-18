@@ -290,22 +290,6 @@
     elmCommentInput.parentElement.removeChild(elmCommentInput);
     elmColLeft.appendChild(elmCommentInput);
 
-    // コネコネ(仮) (https://github.com/sevenc-nanashi/conecone-kakkokari)
-    // の全画面機能と競合しないようにする
-    elmPlayer.requestFullscreen = new Proxy(elmPlayer.requestFullscreen, {
-      apply: function(target, thisArg, args) {
-        while(elmPlayerCloned.firstElementChild)
-          elmPlayer.appendChild(elmPlayerCloned.removeChild(elmPlayerCloned.firstElementChild));
-        return target.apply(thisArg, args);
-      }
-    });
-    elmPlayer.addEventListener("fullscreenchange", () => {
-      if (!document.fullscreenElement) {
-        while(elmPlayer.firstElementChild)
-          elmPlayerCloned.appendChild(elmPlayer.removeChild(elmPlayer.firstElementChild));
-      }
-    });
-
     const ngCommentUl = document.querySelector("#popover\\:\\:r0\\:\\:content > div > ul");
     const ulObserver = new MutationObserver((mutations, _observer) => {
       mutations.forEach(mutation => {
