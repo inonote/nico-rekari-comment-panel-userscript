@@ -31,7 +31,7 @@
 
   const STYLE_SHEET = `
 .nicopane-cmtlst {
-  border: 2px solid #dadada;
+  border: 1px solid #dadada;
   width: 100%;
   overflow: scroll;
   position: absolute;
@@ -509,7 +509,7 @@
     elmPage.setAttribute("style", elmPage.getAttribute("style") + ";--max-player-width: 1200px; width: auto; max-width: unset;");
 
     const elmColContainer = document.createElement("div");
-    elmColContainer.setAttribute("style", "display: grid; grid-template-columns: 2fr 1fr; gap: 12px;");
+    elmColContainer.setAttribute("style", "display: grid; grid-template-columns: 2fr 1fr;");
 
     const elmColLeft = document.createElement("div");
     elmColLeft.setAttribute("style", "display: flex;flex-direction: column;gap: 12px;");
@@ -518,14 +518,15 @@
     elmColRight.setAttribute("style", "position: relative;");
     elmColContainer.appendChild(elmColRight);
 
-    elmPlayer.setAttribute("style", "margin-left: 0; margin-right: 0; border-radius: 12px; width: 100%");
+    elmPlayer.setAttribute("style", "margin-left: 0; margin-right: 0; border-radius: 0; width: 100%; box-shadow: none");
+    elmPlayer.children[3].setAttribute("style", "height: 42px");
 
     // コメント投稿時に挿入される Cloudflare Turnstile 用 iframe は
     // elmPlayer の要素位置を基準にしているようなので、元の要素は残しておく
     const elmPlayerCloned = elmPlayer.cloneNode(false);
 
     const inputContainer = elmCommentInput.children[0];
-    inputContainer.setAttribute("style", "display: grid; grid-template-columns: 1fr 3fr 1fr; grid-auto-rows: 40px;");
+    inputContainer.setAttribute("style", "display: grid; grid-template-columns: 1fr 3fr 1fr; grid-auto-rows: 36px; padding: 0 16px; font-size: 92.5%;");
 
     const controlContainer = elmPlayer.children[2];
     controlContainer.setAttribute("style", "gap: 10px;");
