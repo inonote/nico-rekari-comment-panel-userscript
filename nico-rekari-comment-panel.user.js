@@ -271,6 +271,8 @@
     elmColRight.setAttribute("style", "flex: 1 1 auto; position: relative;");
     elmColContainer.appendChild(elmColRight);
 
+    elmPlayer.setAttribute("style", "margin-left: 0; margin-right: 0; border-radius: 12px; width: 100%");
+
     // コメント投稿時に挿入される Cloudflare Turnstile 用 iframe は
     // elmPlayer の要素位置を基準にしているようなので、元の要素は残しておく
     const elmPlayerCloned = elmPlayer.cloneNode(false);
