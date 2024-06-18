@@ -278,7 +278,7 @@
     const elmPlayerCloned = elmPlayer.cloneNode(false);
 
     const inputContainer = elmCommentInput.children[0];
-    inputContainer.setAttribute("style", "display: grid; grid-template-columns: 1fr 3fr 1fr;");
+    inputContainer.setAttribute("style", "display: grid; grid-template-columns: 1fr 3fr 1fr; grid-auto-rows: 40px;");
 
     const controlContainer = elmPlayer.children[2];
     controlContainer.setAttribute("style", "gap: 10px;");
