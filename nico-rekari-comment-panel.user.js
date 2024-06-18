@@ -29,9 +29,168 @@
 (function() {
   "use strict";
 
+  const STYLE_SHEET = `
+.nicopane-cmtlst {
+  border: 2px solid #dadada;
+  width: 100%;
+  overflow: scroll;
+  position: absolute;
+  height: calc(100% - 32px);
+  font-size:80%
+}
+
+.nicopane-cmtlst-head {
+  position: sticky;
+  top: 0;
+  font-weight: bold;
+  background: #f2f2f2;
+}
+
+.nicopane-cmtlst-head,
+.nicopane-cmtlst-row {
+  display: grid;
+  grid-template-columns: minmax(180px, auto) 80px 180px;
+  width: calc(max(100%, 260px) + 180px);
+  user-select: none;
+}
+
+.nicopane-cmtlst-row:hover {
+  background: #efefef;
+}
+
+.nicopane-cmtlst-col {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-right: 1px solid #dadada;
+}
+
+.nicopane-menu-backdrop {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+}
+
+.nicopane-menu {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #dadada;
+  border-radius: 6px;
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, .125);
+  padding: 4px 0px;
+  font-size: 80%;
+  user-select: none;
+  z-index: 10001;
+}
+
+.nicopane-menu-head {
+  font-weight: bold;
+  padding-bottom: 2px;
+}
+  
+.nicopane-menu-head,
+.nicopane-menu-item {
+  padding: 2px 10px;
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nicopane-menu-item:hover {
+  background: #efefef;
+}
+
+.nicopane-head {
+  display: flex;
+  margin: 4px 12px;
+  font-size: 92.5%;
+}
+
+.nicopane-head > select {
+  border-width: revert;
+  border-style: revert;
+  border-color: revert;
+}
+
+.nicopane-head-btn {
+  display: inline-block;
+  fill: #b2b9c2;
+  cursor: pointer;
+}
+.nicopane-head-btn:hover {
+  fill: #c9d1db;
+}
+
+.nicopane-icon svg {
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+}
+
+.nicopane-mr-auto {
+  margin-right: auto;
+}
+`;
+  
+  function iconCommentAutoScroll() { return createSvgElement('<svg width="32" height="32" viewBox="0 0 8.467 8.467" xmlns="http://www.w3.org/2000/svg"><path d="M2.646 1.058v.53H5.82v-.53H2.646zm0 1.059V3.44H5.82V2.117H2.646zm0 1.852v1.058H.794l3.44 2.646 3.439-2.646H5.82V3.97H2.646z" fill-rule="evenodd" paint-order="stroke fill markers"/></svg>'); }
+  function iconCommentAutoScrollDisabled() { return createSvgElement('<svg width="32" height="32" viewBox="0 0 8.467 8.467" xmlns="http://www.w3.org/2000/svg"><path d="m3.392.698-.562.56.842.843-.842.841.562.562.841-.842.842.842.561-.562-.841-.841.841-.842-.56-.561-.843.841-.841-.841zm-.746 3.27v1.06H.794l3.44 2.645 3.439-2.646H5.82V3.97H2.646z" fill-rule="evenodd" paint-order="stroke fill markers"/></svg>'); }
+
+  function trackPopupMenu(x, y, items) {
+    /*
+      items
+      [
+        [ "item id 0", "header label" ],
+        [ "item id 1", "item label 1" ],
+        [ "item id 2", "item label 2" ]
+      ]
+    */
+
+    return new Promise(resolve => {
+      let elmBackdrop = createDivElement("nicopane-menu-backdrop");
+      document.body.appendChild(elmBackdrop);
+
+      let elmPopup = createDivElement("nicopane-menu");
+      elmPopup.style.left = x + "px";
+      elmPopup.style.top = y + "px";
+      document.body.appendChild(elmPopup);
+
+      let i = 0;
+      for(const row of items) {
+        if (!row)
+          continue;
+
+        let elmItem = createDivElement(i ? "nicopane-menu-item" : "nicopane-menu-head");
+        elmItem.innerText = row[1];
+        elmPopup.appendChild(elmItem);
+
+        if (i) {
+          elmItem.addEventListener("click", () => destruct(row[0]));
+        }
+
+        ++i;
+      }
+
+      elmBackdrop.addEventListener("mousedown", () => destruct(null));
+
+      if (x + elmPopup.clientWidth + 5 > document.documentElement.clientWidth)
+        elmPopup.style.left = (document.documentElement.clientWidth - elmPopup.clientWidth - 5) + "px";
+
+      function destruct(itemId) {
+        elmBackdrop.parentElement.removeChild(elmBackdrop);
+        elmPopup.parentElement.removeChild(elmPopup);
+        resolve(itemId);
+      }
+    });
+  }
+
   function CommentList() {
     this.elmList = document.createElement("div");
-    this.elmList.setAttribute("style", "border: 2px solid #dadada;width: 100%;overflow: scroll;position: absolute;height: 100%;font-size:80%");
+    this.elmList.classList.add("nicopane-cmtlst");
     this.elmVideo = null;
     /**
      * @type {CommentData[]}
@@ -41,10 +200,41 @@
      * @type {CommentData[]}
      */
     this.allComments = [];
+
+    this.isAutoScrollEnabled = true;
   }
   CommentList.prototype = {
     // コメントリスト挿入
     install: function(parentElement) {
+      let elmCommentPanelHeader = createDivElement("nicopane-head");
+
+      // 特に意味のないコメント切り替えドロップダウン
+      let elmCommentSelector = document.createElement("select");
+      let elmCommentSelectorItem = document.createElement("option");
+      elmCommentSelectorItem.value = "normal";
+      elmCommentSelectorItem.label = "通常コメント";
+      elmCommentSelector.appendChild(elmCommentSelectorItem);
+      elmCommentSelector.classList.add("nicopane-mr-auto");
+      elmCommentSelector.value = "normal";
+      elmCommentPanelHeader.appendChild(elmCommentSelector);
+
+      // リスト自動スクロール切り替えボタン
+      let elmBtnAutoScroll = createDivElement("nicopane-head-btn nicopane-icon");
+      elmBtnAutoScroll.title = "自動スクロール";
+      elmBtnAutoScroll.appendChild(iconCommentAutoScroll());
+      elmBtnAutoScroll.addEventListener("click", () => {
+        this.isAutoScrollEnabled = !this.isAutoScrollEnabled;
+
+        elmBtnAutoScroll.innerHTML = "";
+        if (this.isAutoScrollEnabled)
+          elmBtnAutoScroll.appendChild(iconCommentAutoScroll());
+        else
+          elmBtnAutoScroll.appendChild(iconCommentAutoScrollDisabled());
+      }, true);
+      elmCommentPanelHeader.appendChild(elmBtnAutoScroll);
+
+      parentElement.appendChild(elmCommentPanelHeader);
+
       parentElement.appendChild(this.elmList);
     },
 
@@ -53,8 +243,7 @@
       this.elmList.innerHTML = "";
       this.comments.sort((a, b) => a.vposMsec - b.vposMsec);
       const createItemCol = function(text) {
-        let elmCol = document.createElement("div");
-        elmCol.setAttribute("style", "text-overflow: ellipsis;overflow: hidden;white-space: nowrap;padding: 4px 8px;border-right: 1px solid #dadada;");
+        let elmCol = createDivElement("nicopane-cmtlst-col");
         elmCol.title = text;
         elmCol.innerText = text;
         return elmCol;
@@ -62,8 +251,7 @@
 
       // ヘッダー
       {
-        let elmListItem = document.createElement("div");
-        elmListItem.setAttribute("style", "display: grid; grid-template-columns: minmax(180px, auto) 80px 180px; width: calc(max(100%, 260px) + 180px); position: sticky; top: 0; background: #f2f2f2;");
+        let elmListItem = createDivElement("nicopane-cmtlst-head");
         elmListItem.appendChild(createItemCol("コメント"));
         elmListItem.appendChild(createItemCol("再生時間"));
         elmListItem.appendChild(createItemCol("書込日時"));
@@ -71,13 +259,71 @@
       }
 
       for(let idx = 0; idx < this.comments.length; ++idx) {
-        let elmListItem = document.createElement("div");
-        elmListItem.setAttribute("style", "display: grid; grid-template-columns: minmax(180px, auto) 80px 180px; width: calc(max(100%, 260px) + 180px);");
-        elmListItem.appendChild(createItemCol(this.comments[idx].message));
-        elmListItem.appendChild(createItemCol(mescToTime(this.comments[idx].vposMsec)));
-        elmListItem.appendChild(createItemCol(new Date(this.comments[idx].postedAt).toLocaleString()));
+        let commentData = this.comments[idx];
+        let elmListItem = createDivElement("nicopane-cmtlst-row");
+        elmListItem.appendChild(createItemCol(commentData.message));
+        elmListItem.appendChild(createItemCol(mescToTime(commentData.vposMsec)));
+        elmListItem.appendChild(createItemCol(new Date(commentData.postedAt).toLocaleString()));
+
+        elmListItem.addEventListener("contextmenu", e => {
+          this.onContextMenuListItem(e.pageX, e.pageY, commentData);
+          e.preventDefault();
+          e.stopPropagation();
+        });
         this.elmList.appendChild(elmListItem);
-        this.comments[idx].elmItem = elmListItem;
+        commentData.elmItem = elmListItem;
+      }
+    },
+
+    /** @type {(mouseX: number, mouseY: number, commentData: CommentData) => void} */
+    onContextMenuListItem: async function(mouseX, mouseY, commentData) {
+      // jump は使えない
+      //   ニコ動プレイヤーの使用上、currentTime を書き換えるだけでは正常にジャンプできない
+      //   対処法調査中
+
+      const retId = await trackPopupMenu(mouseX, mouseY, [
+        [ "", commentData.message ],
+        [ "copy", "コメントをコピー"],
+        // [ "jump", `コメントの再生時間 ${mescToTime(commentData.vposMsec)} に移動` ],
+        [ "ng", "コメントをNG登録"]
+      ]);
+
+      switch (retId) {
+      case "copy": // コメントをコピー
+        navigator.clipboard.writeText(commentData.message);
+        break;
+    
+      /* case "jump": // コメントの再生時間に移動
+        if (this.elmVideo)
+          this.elmVideo.currentTime = commentData.vposMsec / 1000;
+        break;*/
+      
+      case "ng": // コメントをNG登録
+        {
+          const elmBtnNgConfig = document.getElementById("popover::r0::trigger");
+          const elmInput = document.querySelector("#popover\\:\\:r0\\:\\:popper > div > div > div > input");
+          const elmBtnAdd = document.querySelector("#popover\\:\\:r0\\:\\:popper > div > div > button:last-of-type");
+          if (!elmBtnNgConfig || !elmInput || !elmBtnAdd)
+            break;
+
+          // NG設定ボタンを押して...
+          elmBtnNgConfig.click();
+
+          // 入力欄にコメント本文を設定して
+          let oldValue = elmInput.value;
+          elmInput.value = commentData.message;
+          if (elmInput._valueTracker)
+            elmInput._valueTracker.setValue(oldValue); // Reactで管理されたinputを書き換えるためのハック
+          elmInput.dispatchEvent(new Event("input", { bubbles: true } ));
+
+          // 追加ボタンを押して...
+          elmBtnAdd.click();
+
+          // もう一度NG設定ボタンを押す (popover非表示)
+          elmBtnNgConfig.click();
+        }
+        break;
+
       }
     },
 
@@ -86,6 +332,7 @@
       let time = time_;
       if (time === undefined && this.elmVideo)
         time = this.elmVideo.currentTime * 1000;
+
       for(const x of this.comments) {
         if (time <= x.vposMsec) {
           if (x.elmItem) {
@@ -102,7 +349,7 @@
     startTimeSync: function(elmVideo) {
       this.elmVideo = elmVideo;
       setInterval(() => {
-        if (!elmVideo.paused)
+        if (!elmVideo.paused && this.isAutoScrollEnabled)
           this.syncCurrentTime(elmVideo.currentTime * 1000);
       }, 500);
     }
@@ -304,6 +551,12 @@
     });
     ulObserver.observe(ngCommentUl, { childList: true });
 
+    // スタイルシート挿入
+    let elmStyle = document.createElement("style");
+    console.log(elmStyle);
+    elmStyle.textContent = STYLE_SHEET;
+    document.head.appendChild(elmStyle);
+    
     commentList.install(elmColRight);
     commentList.startTimeSync(elmVideo);
   }
@@ -314,6 +567,19 @@
 
   function padLeft(str, num, padding) {
     return (padding.repeat(num) + str).slice(-num);
+  }
+
+  /** @type {(className: string) => HTMLDivElement} */
+  function createDivElement(className) {
+    let elm = document.createElement("div");
+    elm.setAttribute("class", className);
+    return elm;
+  }
+
+  function createSvgElement(svg) {
+    let elm = document.createElement("div");
+    elm.innerHTML = svg;
+    return elm.firstElementChild;
   }
 
   fetch = new Proxy(fetch, {
