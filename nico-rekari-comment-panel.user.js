@@ -259,7 +259,7 @@
       setTimeout(appendCommentList, 250);
       return;
     }
-    elmPage.setAttribute("style", elmPage.getAttribute("style") + ";--max-player-width: 1200px;");
+    elmPage.setAttribute("style", elmPage.getAttribute("style") + ";--max-player-width: 1200px; width: auto; max-width: unset;");
 
     const elmColContainer = document.createElement("div");
     elmColContainer.setAttribute("style", "display: grid; grid-template-columns: 2fr 1fr; gap: 12px;");
