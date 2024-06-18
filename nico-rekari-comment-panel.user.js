@@ -268,7 +268,7 @@
     elmColLeft.setAttribute("style", "display: flex;flex-direction: column;gap: 12px;");
     elmColContainer.appendChild(elmColLeft);
     const elmColRight = document.createElement("div");
-    elmColRight.setAttribute("style", "flex: 1 1 auto; position: relative;");
+    elmColRight.setAttribute("style", "position: relative;");
     elmColContainer.appendChild(elmColRight);
 
     elmPlayer.setAttribute("style", "margin-left: 0; margin-right: 0; border-radius: 12px; width: 100%");
