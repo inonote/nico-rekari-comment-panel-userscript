@@ -596,6 +596,7 @@
     const elmPlayerCloned = elmPlayer.cloneNode(false);
 
     const inputContainer = elmCommentInput.children[0];
+    
     inputContainer.setAttribute("style", "display: grid; grid-template-columns: 1fr 3fr 1fr; grid-auto-rows: 36px; padding: 0 16px; font-size: 92.5%; height: auto;");
     inputContainer.children[2].setAttribute("style", "height: 100%;");
 
